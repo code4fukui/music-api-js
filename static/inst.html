@@ -1,41 +1,21 @@
 <!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
-<title>Demo powered by SUNO API</title>
+<title>Inst. Demo powered by SUNO API</title>
 </head><body>
-<h1>Demo powered by SUNO API</h1>
+<h1>Inst. Demo powered by SUNO API</h1>
 
-どんなテーマの曲を作りますか？<br>
-<input id="in_prompt1" value=""><br>
-どういうスタイルの曲にしますか？<span class=small>（参考、<a href=https://ai-music-lab.com/sunoai-style-list/>【2025年最新版】Suno AIで使えるstyle一覧まとめ🎧初心者向けガイド付き！ | AI音楽ラボ</a>）<span><br>
-<input id="in_style1" placeholder="male vocals, heavy metal" value=""><br>
-<button id="btn_make1">歌詞生成をリクエストする</button><br>
-<br>
-歌詞生成タスクID<br>
-<input id="in_taskId1" placeholder="" value=""><br>
-<button id="btn_check1">しばらく待って、この歌詞作成リクエストのタスクが終わったか確認する</button><br>
-<br>
 曲のタイトル<br>
 <input id="in_title1"><br>
-曲のスタイル（female vocals, heavy metal など）<br>
+曲のスタイル<span class=small>（参考、<a href=https://ai-music-lab.com/sunoai-style-list/>【2025年最新版】Suno AIで使えるstyle一覧まとめ🎧初心者向けガイド付き！ | AI音楽ラボ</a>）<span><br>
 <input id="in_style2" placeholder="" value=""><br>
-<table>
-  <tr>
-    <td>
-      <textarea id="ta_lyric1"></textarea><br>
-      <button id="btn_make2_1">この歌詞で曲づくりをリクエストする</button><br>
-    </td><td>
-      <textarea id="ta_lyric2"></textarea><br>
-      <button id="btn_make2_2">この歌詞で曲づくりをリクエストする</button><br>
-    </td>
-  </tr>
-</table>
-
+<button id="btn_make2_1">曲作成リクエストする</button><br>
+<br>
 <input id="in_taskId2" placeholder="taskId" value=""><br><br>
 <button id="btn_check2">しばらく待って、この曲作成リクエストのタスクが終わったか確認する</button><br>
 <br>
 完成した曲<br>
 <input id="in_music1"><button id=btn_play1>PLAY</button><button id=btn_download1>DOWNLOAD</button><br>
 <input id="in_music2"><button id=btn_play2>PLAY</button><button id=btn_download2>DOWNLOAD</button><br>
-気に入ったものにならなかった場合は、歌詞やスタイルを変更して再生成してみよう！<br>
+気に入ったものにならなかった場合は、スタイルを変更して再生成してみよう！<br>
 DOWNLOADができるようになるまで、少し時間がかかるので、しばらく待って、再度タスクが終わったか確認ボタンを押そう。
 
 <hr>
@@ -66,44 +46,17 @@ import { fetchJSON } from "https://js.sabae.cc/fetchJSON.js";
 import { downloadFile } from "https://js.sabae.cc/downloadFile.js";
 import { playBGM } from "./bgm.js";
 
-btn_make1.onclick = async () => {
-  const prompt = in_prompt1.value;
-  const style = in_style1.value;
-  in_style2.value = style;
-  const s = prompt + (style ? "," + style : "");
-  const tag = await fetchJSON("./api/fetchLyrics?prompt=" + encodeURIComponent(s));
-  in_taskId1.value = tag;
-};
-
-btn_check1.onclick = async () => {
-  const json = await fetchJSON("./api/fetchTask?taskId=" + in_taskId1.value);
-  //in_taskId1.value = tag;
-  console.log(json);
-  if (!json.data) {
-    alert(json.err);
-    return;
-  }
-  ta_lyric1.value = json.data.data[0].text;
-  in_title1.value = json.data.data[0].title;
-  ta_lyric2.value = json.data.data[1].text;
-  //in_title2.value = json.data.data[1].title;
-};
-
-const makeMusic = async (title, prompt) => {
+const makeMusic = async (title) => {
   const style = in_style2.value;
-  const tag = await fetchJSON("./api/fetchGenerateMusicCustom"
-    + "?prompt=" + encodeURIComponent(prompt)
-    + "&title=" + encodeURIComponent(title)
+  const tag = await fetchJSON("./api/fetchGenerateMusicCustomInstrumental"
+    + "?title=" + encodeURIComponent(title)
     + "&style=" + encodeURIComponent(style)
   );
   in_taskId2.value = tag;
 };
 
 btn_make2_1.onclick = async () => {
-  await makeMusic(in_title1.value, ta_lyric1.value);
-};
-btn_make2_2.onclick = async () => {
-  await makeMusic(in_title1.value, ta_lyric2.value);
+  await makeMusic(in_title1.value);
 };
 
 btn_check2.onclick = async () => {
