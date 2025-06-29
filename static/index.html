@@ -1,0 +1,175 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
+<title>Demo powered by SUNO API</title>
+</head><body>
+<h1>Demo powered by SUNO API</h1>
+
+どんなテーマの曲を作りますか？<br>
+<input id="in_prompt1" value=""><br>
+どういうスタイルの曲にしますか？<span class=small>（参考、<a href=https://ai-music-lab.com/sunoai-style-list/>【2025年最新版】Suno AIで使えるstyle一覧まとめ🎧初心者向けガイド付き！ | AI音楽ラボ</a>）<span><br>
+<input id="in_style1" placeholder="male vocals, heavy metal" value=""><br>
+<button id="btn_make1">歌詞生成をリクエストする</button><br>
+<br>
+歌詞生成タスクID<br>
+<input id="in_taskId1" placeholder="" value=""><br>
+<button id="btn_check1">しばらく待って、この歌詞作成リクエストのタスクが終わったか確認する</button><br>
+<br>
+曲のタイトル<br>
+<input id="in_title1"><br>
+曲のスタイル（female vocals, heavy metal など）<br>
+<input id="in_style2" placeholder="" value=""><br>
+<table>
+  <tr>
+    <td>
+      <textarea id="ta_lyric1"></textarea><br>
+      <button id="btn_make2_1">この歌詞で曲づくりをリクエストする</button><br>
+    </td><td>
+      <textarea id="ta_lyric2"></textarea><br>
+      <button id="btn_make2_2">この歌詞で曲づくりをリクエストする</button><br>
+    </td>
+  </tr>
+</table>
+
+<input id="in_taskId2" placeholder="taskId" value=""><br><br>
+<button id="btn_check2">しばらく待って、この曲作成リクエストのタスクが終わったか確認する</button><br>
+<br>
+完成した曲<br>
+<input id="in_music1"><button id=btn_play1>PLAY</button><button id=btn_download1>DOWNLOAD</button><br>
+<input id="in_music2"><button id=btn_play2>PLAY</button><button id=btn_download2>DOWNLOAD</button><br>
+気に入ったものにならなかった場合は、歌詞やスタイルを変更して再生成してみよう！<br>
+DOWNLOADができるようになるまで、少し時間がかかるので、しばらく待って、再度タスクが終わったか確認ボタンを押そう。
+
+<hr>
+API: <a href=https://docs.sunoapi.org/>Suno API Documentation | Docs - SunoApi.org</a><br>
+<a href=https://github.com/code4fukui/suno-api-js/>src on GitHub</a><br>
+
+<style>
+body {
+  font-family: sans-serif;
+}
+textarea {
+  height: 40em;
+  width: 30em;
+}
+input {
+  width: 40em;
+}
+.small {
+  font-size: 80%;
+}
+a {
+  color: gray !important;
+}
+</style>
+
+<script type="module">
+import { fetchJSON } from "https://js.sabae.cc/fetchJSON.js";
+import { downloadFile } from "https://js.sabae.cc/downloadFile.js";
+
+btn_make1.onclick = async () => {
+  const prompt = in_prompt1.value;
+  const style = in_style1.value;
+  in_style2.value = style;
+  const s = prompt + (style ? "," + style : "");
+  const tag = await fetchJSON("./api/fetchLyrics?prompt=" + encodeURIComponent(s));
+  in_taskId1.value = tag;
+};
+
+btn_check1.onclick = async () => {
+  const json = await fetchJSON("./api/fetchTask?taskId=" + in_taskId1.value);
+  //in_taskId1.value = tag;
+  console.log(json);
+  if (!json.data) {
+    alert(json.err);
+    return;
+  }
+  ta_lyric1.value = json.data.data[0].text;
+  in_title1.value = json.data.data[0].title;
+  ta_lyric2.value = json.data.data[1].text;
+  //in_title2.value = json.data.data[1].title;
+};
+
+const makeMusic = async (title, prompt) => {
+  const style = in_style2.value;
+  const tag = await fetchJSON("./api/fetchGenerateMusicCustom"
+    + "?prompt=" + encodeURIComponent(prompt)
+    + "&title=" + encodeURIComponent(title)
+    + "&style=" + encodeURIComponent(style)
+  );
+  in_taskId2.value = tag;
+};
+
+btn_make2_1.onclick = async () => {
+  await makeMusic(in_title1.value, ta_lyric1.value);
+};
+btn_make2_2.onclick = async () => {
+  await makeMusic(in_title1.value, ta_lyric2.value);
+};
+
+btn_check2.onclick = async () => {
+  const json = await fetchJSON("./api/fetchTask?taskId=" + in_taskId2.value);
+  console.log(json);
+  if (!json.data) {
+    alert(json.err);
+    return;
+  }
+  const audio = (d) => d.audio_url ? d.audio_url : d.stream_audio_url;
+  in_music1.value = audio(json.data.data[0]);
+  in_music2.value = audio(json.data.data[1]);
+  btn_download1.disabled = !in_music1.value.endsWith(".mp3");
+  btn_download2.disabled = !in_music2.value.endsWith(".mp3");
+};
+
+const caches = {};
+let currentaudio = null;
+const getAudio = (fn) => {
+  const cache = caches[fn];
+  if (cache) return cache;
+  const audio = new Audio();
+  audio.src = fn;
+  caches[fn] = audio;
+  return audio;
+};
+const waitForAudioEnd = async (audioElement) => {
+  return new Promise((resolve, reject) => {
+    if (audioElement.ended) {
+      resolve();
+      return;
+    }
+    audioElement.addEventListener("ended", resolve, { once: true });
+    audioElement.addEventListener("error", reject, { once: true });
+  });
+};
+const playBGM = async (fn) => {
+  const audio = getAudio(fn);
+  const stop = currentaudio == audio;
+  stopBGM();
+  if (stop) return;
+  audio.currentTime = 0;
+  audio.play();
+  currentaudio = audio;
+  await waitForAudioEnd(audio);
+  currentaudio = null;
+};
+const stopBGM = () => {
+  if (currentaudio) {
+    currentaudio.pause();
+    currentaudio = null;
+  }
+};
+
+const download = async (url) => {
+  const bin = await (await fetch(url)).bytes();
+  const title = in_title1.value;
+  downloadFile(title + ".mp3", bin);
+};
+
+btn_play1.onclick = () => {
+  playBGM(in_music1.value);
+};
+btn_play2.onclick = () => {
+  playBGM(in_music2.value);
+};
+btn_download1.onclick = () => download(in_music1.value);
+btn_download2.onclick = () => download(in_music2.value);
+
+</script>
