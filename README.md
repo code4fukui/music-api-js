@@ -1,10 +1,10 @@
-# suno-api-js
+# music-api-js
 
-- JavaScript/Deno WebAPI for SUNO API
+- JavaScript/Deno WebAPI for [MUSICAPI.ORG](https://sunoapi.org/)
 
 ## usage
 
-set your APIKEY of SUNO API, and your CALLBACKBASE
+set your APIKEY of [MUSICAPI.ORG](https://sunoapi.org/), and your CALLBACKBASE
 ```
 APIKEY=nnnn
 CALLBACKBASE=https://xxxx.xxxx.xxxx
