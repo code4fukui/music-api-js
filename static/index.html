@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
-<title>Demo powered by MUSICAPI.ORG</title>
+<title>Music Generator powered by MUSICAPI.ORG</title>
 </head><body>
-<h1>Demo powered by MUSICAPI.ORG</h1>
+<h1>Music Generator powered by MUSICAPI.ORG</h1>
 
 どんなテーマの曲を作りますか？<br>
 <input id="in_prompt1" value=""><br>
@@ -10,8 +10,7 @@
 <button id="btn_make1">歌詞生成をリクエストする</button><br>
 <br>
 歌詞生成タスクID<br>
-<input id="in_taskId1" placeholder="" value=""><br>
-<button id="btn_check1">しばらく待って、この歌詞作成リクエストのタスクが終わったか確認する</button><br>
+<input id="in_taskId1" placeholder="" value=""><button id="btn_check1">check task</button><br>
 <br>
 曲のタイトル<br>
 <input id="in_title1"><br>
@@ -29,8 +28,7 @@
   </tr>
 </table>
 
-<input id="in_taskId2" placeholder="taskId" value=""><br><br>
-<button id="btn_check2">しばらく待って、この曲作成リクエストのタスクが終わったか確認する</button><br>
+<input id="in_taskId2" placeholder="taskId" value=""><button id="btn_check2">check task</button><br><br><br>
 <br>
 完成した曲<br>
 <input id="in_music1"><button id=btn_play1>PLAY</button><button id=btn_download1>DOWNLOAD</button><br>
@@ -65,28 +63,41 @@ a {
 import { fetchJSON } from "https://js.sabae.cc/fetchJSON.js";
 import { downloadFile } from "https://js.sabae.cc/downloadFile.js";
 import { playBGM } from "./bgm.js";
+import { sleep } from "https://js.sabae.cc/sleep.js";
 
 btn_make1.onclick = async () => {
+  btn_make1.disabled = true;
   const prompt = in_prompt1.value;
   const style = in_style1.value;
   in_style2.value = style;
   const s = prompt + (style ? "," + style : "");
   const tag = await fetchJSON("./api/fetchLyrics?prompt=" + encodeURIComponent(s));
   in_taskId1.value = tag;
+  for (let i = 0; i < 100; i++) {
+    await sleep(1000);
+    if (await checkTask1()) break;
+  }
+  btn_make1.disabled = false;
 };
 
-btn_check1.onclick = async () => {
+const checkTask1 = async () => {
   const json = await fetchJSON("./api/fetchTask?taskId=" + in_taskId1.value);
   //in_taskId1.value = tag;
   console.log(json);
   if (!json.data) {
+    if (json.err == "not yet") return false;
     alert(json.err);
-    return;
+    return true;
   }
   ta_lyric1.value = json.data.data[0].text;
   in_title1.value = json.data.data[0].title;
   ta_lyric2.value = json.data.data[1].text;
   //in_title2.value = json.data.data[1].title;
+  return true;
+};
+
+btn_check2.onclick = async () => {
+  await checkTask1();
 };
 
 const makeMusic = async (title, prompt) => {
@@ -99,25 +110,43 @@ const makeMusic = async (title, prompt) => {
   in_taskId2.value = tag;
 };
 
+const waitMusic = async (title, lyric) => {
+  await makeMusic(title, lyric);
+  for (let i = 0; i < 100; i++) {
+    await sleep(3000);
+    if (await checkTask2()) break;
+  }
+};
+
 btn_make2_1.onclick = async () => {
-  await makeMusic(in_title1.value, ta_lyric1.value);
+  btn_make2_1.disabled = true;
+  await waitMusic(in_title1.value, ta_lyric1.value);
+  btn_make2_1.disabled = false;
 };
 btn_make2_2.onclick = async () => {
-  await makeMusic(in_title1.value, ta_lyric2.value);
+  btn_make2_2.disabled = true;
+  await waitMusic(in_title1.value, ta_lyric2.value);
+  btn_make2_2.disabled = false;
 };
 
 btn_check2.onclick = async () => {
+  await checkTask2();
+};
+
+const checkTask2 = async () => {
   const json = await fetchJSON("./api/fetchTask?taskId=" + in_taskId2.value);
   console.log(json);
   if (!json.data) {
+    if (json.err == "not yet") return false;
     alert(json.err);
-    return;
+    return true;
   }
   const audio = (d) => d.audio_url ? d.audio_url : d.stream_audio_url;
   in_music1.value = audio(json.data.data[0]);
   in_music2.value = audio(json.data.data[1]);
   btn_download1.disabled = !in_music1.value.endsWith(".mp3");
   btn_download2.disabled = !in_music2.value.endsWith(".mp3");
+  return json.data.callbackType == "complete"; //true;
 };
 
 const download = async (url) => {
