@@ -89,6 +89,10 @@ const checkTask1 = async () => {
     alert(json.err);
     return true;
   }
+  if (!json.data.data) {
+    ta_lyric1.value = json.msg;
+    return true;
+  }
   ta_lyric1.value = json.data.data[0].text;
   in_title1.value = json.data.data[0].title;
   ta_lyric2.value = json.data.data[1].text;
@@ -96,7 +100,8 @@ const checkTask1 = async () => {
   return true;
 };
 
-btn_check2.onclick = async () => {
+btn_check1.onclick = async () => {
+  btn_make1.disabled = false;
   await checkTask1();
 };
 
@@ -130,6 +135,8 @@ btn_make2_2.onclick = async () => {
 };
 
 btn_check2.onclick = async () => {
+  btn_make2_1.disabled = false;
+  btn_make2_2.disabled = false;
   await checkTask2();
 };
 
@@ -139,6 +146,10 @@ const checkTask2 = async () => {
   if (!json.data) {
     if (json.err == "not yet") return false;
     alert(json.err);
+    return true;
+  }
+  if (!json.data.data) {
+    in_music1.value = json.msg;
     return true;
   }
   const audio = (d) => d.audio_url ? d.audio_url : d.stream_audio_url;
