@@ -5,6 +5,7 @@ import { serveDir } from "jsr:@std/http/file-server";
 const env = await load();
 
 const base = "https://apibox.erweima.ai";
+const model = "V4_5PLUS"; // Possible values: V3_5, V4, V4_5, V4_5PLUS
 
 const apikey = env["APIKEY"];
 const callBackBase = env["CALLBACKBASE"];
@@ -108,7 +109,7 @@ const fetchGenerateMusicSimple = async (prompt, negativeTags) => {
     negativeTags,
     customMode: false,
     instrumental: false,
-    model: "V4_5",
+    model,
   };
   const taskId = await fetchPOST(path, body);
   return taskId;
@@ -123,7 +124,7 @@ const fetchGenerateMusicCustom = async (prompt, style, title, negativeTags) => {
     negativeTags,
     customMode: true,
     instrumental: false,
-    model: "V4_5",
+    model,
   };
   const taskId = await fetchPOST(path, body);
   return taskId;
@@ -137,7 +138,7 @@ const fetchGenerateMusicCustomInstrumental = async (style, title, negativeTags) 
     negativeTags,
     customMode: true,
     instrumental: true,
-    model: "V4_5", // Possible values: [V3_5, V4, V4_5]
+    model,
   };
   const taskId = await fetchPOST(path, body);
   return taskId;
