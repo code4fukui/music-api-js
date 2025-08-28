@@ -1,13 +1,30 @@
 <!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
-<title>Generate Inst. powered by MUSICAPI.ORG</title>
+<title>Generate Music powered by MUSICAPI.ORG</title>
 </head><body>
-<h1>Generate Inst. powered by MUSICAPI.ORG</h1>
+<h1>Generate Music powered by MUSICAPI.ORG</h1>
 
+どんなテーマの曲を作りますか？<br>
+<input id="in_prompt1" value=""><br>
+どういうスタイルの曲にしますか？<br>
+<input id="in_style1" placeholder="male vocals, heavy metal" value=""><br>
+<button id="btn_make1">歌詞生成をリクエストする</button><br>
+<br>
 曲のタイトル<br>
 <input id="in_title1"><br>
-曲のスタイル<br>
+曲のスタイル（female vocals, heavy metal など）<br>
 <input id="in_style2" placeholder="" value=""><br>
-<button id="btn_make2_1">曲作成リクエストする</button><br>
+<table>
+  <tr>
+    <td>
+      <textarea id="ta_lyric1"></textarea><br>
+      <button id="btn_make2_1">この歌詞で曲づくりをリクエストする</button><br>
+    </td><td>
+      <textarea id="ta_lyric2"></textarea><br>
+      <button id="btn_make2_2">この歌詞で曲づくりをリクエストする</button><br>
+    </td>
+  </tr>
+</table>
+
 <br>
 完成した曲<br>
 <input id="in_music1"><button id=btn_play1>PLAY</button><button id=btn_download1>DOWNLOAD</button><br>
@@ -38,28 +55,50 @@ a {
 </style>
 
 <script type="module">
-import { generateMusicInsturumental } from "./genmusic.js";
+import { generateLyrics, generateMusic } from "./genmusic.js";
 import { downloadFile } from "https://js.sabae.cc/downloadFile.js";
 import { playBGM } from "./bgm.js";
 
-const waitMusicInsturumental = async (title, style) => {
+btn_make1.onclick = async () => {
+  btn_make1.disabled = true;
+  const prompt = in_prompt1.value;
+  const style = in_style1.value;
+  in_style2.value = style;
+  const s = prompt + (style ? "," + style : "");
   try {
-    await generateMusicInsturumental(title, style, (music1, music2) => {
+    const lyrics = await generateLyrics(s);
+    ta_lyric1.value = lyrics[0].text;
+    in_title1.value = lyrics[0].title;
+    ta_lyric2.value = lyrics[1].text;
+    //in_title2.value = lyrics[1].title;
+  } catch (e) {
+    alert(e);
+  }
+  btn_make1.disabled = false;
+};
+
+const waitMusic = async (title, lyric, style) => {
+  try {
+    await generateMusic(title, lyric, style, (music1, music2) => {
       in_music1.value = music1;
       in_music2.value = music2;
       btn_download1.disabled = !music1.endsWith(".mp3");
       btn_download2.disabled = !music2.endsWith(".mp3");
     });
   } catch (e) {
-    console.log(e);
     alert(e);
   }
 };
 
 btn_make2_1.onclick = async () => {
   btn_make2_1.disabled = true;
-  await waitMusicInsturumental(in_title1.value, in_style2.value);
+  await waitMusic(in_title1.value, ta_lyric1.value, in_style2.value);
   btn_make2_1.disabled = false;
+};
+btn_make2_2.onclick = async () => {
+  btn_make2_2.disabled = true;
+  await waitMusic(in_title1.value, ta_lyric2.value, in_style2.value);
+  btn_make2_2.disabled = false;
 };
 
 const download = async (url) => {
