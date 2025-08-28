@@ -9,9 +9,6 @@
 <input id="in_style1" placeholder="male vocals, heavy metal" value=""><br>
 <button id="btn_make1">歌詞生成をリクエストする</button><br>
 <br>
-歌詞生成タスクID<br>
-<input id="in_taskId1" placeholder="" value=""><button id="btn_check1">check task</button><br>
-<br>
 曲のタイトル<br>
 <input id="in_title1"><br>
 曲のスタイル（female vocals, heavy metal など）<br>
@@ -28,13 +25,11 @@
   </tr>
 </table>
 
-<input id="in_taskId2" placeholder="taskId" value=""><button id="btn_check2">check task</button><br><br><br>
 <br>
 完成した曲<br>
 <input id="in_music1"><button id=btn_play1>PLAY</button><button id=btn_download1>DOWNLOAD</button><br>
 <input id="in_music2"><button id=btn_play2>PLAY</button><button id=btn_download2>DOWNLOAD</button><br>
-気に入ったものにならなかった場合は、歌詞やスタイルを変更して再生成してみよう！<br>
-DOWNLOADができるようになるまで、少し時間がかかるので、しばらく待って、再度タスクが終わったか確認ボタンを押そう。
+DOWNLOADができるようになるまで、少し時間がかかります。
 
 <hr>
 API: <a href=https://docs.sunoapi.org/>API Documentation | Docs - MUSICAPI.ORG</a><br>
@@ -60,10 +55,9 @@ a {
 </style>
 
 <script type="module">
-import { fetchJSON } from "https://js.sabae.cc/fetchJSON.js";
+import { generateLyrics, generateMusic } from "./genmusic.js";
 import { downloadFile } from "https://js.sabae.cc/downloadFile.js";
 import { playBGM } from "./bgm.js";
-import { sleep } from "https://js.sabae.cc/sleep.js";
 
 btn_make1.onclick = async () => {
   btn_make1.disabled = true;
@@ -71,93 +65,40 @@ btn_make1.onclick = async () => {
   const style = in_style1.value;
   in_style2.value = style;
   const s = prompt + (style ? "," + style : "");
-  const tag = await fetchJSON("./api/fetchLyrics?prompt=" + encodeURIComponent(s));
-  in_taskId1.value = tag;
-  for (let i = 0; i < 100; i++) {
-    await sleep(1000);
-    if (await checkTask1()) break;
+  try {
+    const lyrics = await generateLyrics(s);
+    ta_lyric1.value = lyrics[0].text;
+    in_title1.value = lyrics[0].title;
+    ta_lyric2.value = lyrics[1].text;
+    //in_title2.value = lyrics[1].title;
+  } catch (e) {
+    alert(e);
   }
   btn_make1.disabled = false;
 };
 
-const checkTask1 = async () => {
-  const json = await fetchJSON("./api/fetchTask?taskId=" + in_taskId1.value);
-  //in_taskId1.value = tag;
-  console.log(json);
-  if (!json.data) {
-    if (json.err == "not yet") return false;
-    alert(json.err);
-    return true;
-  }
-  if (!json.data.data) {
-    ta_lyric1.value = json.msg;
-    return true;
-  }
-  ta_lyric1.value = json.data.data[0].text;
-  in_title1.value = json.data.data[0].title;
-  ta_lyric2.value = json.data.data[1].text;
-  //in_title2.value = json.data.data[1].title;
-  return true;
-};
-
-btn_check1.onclick = async () => {
-  btn_make1.disabled = false;
-  await checkTask1();
-};
-
-const makeMusic = async (title, prompt) => {
-  const style = in_style2.value;
-  const tag = await fetchJSON("./api/fetchGenerateMusicCustom"
-    + "?prompt=" + encodeURIComponent(prompt)
-    + "&title=" + encodeURIComponent(title)
-    + "&style=" + encodeURIComponent(style)
-  );
-  in_taskId2.value = tag;
-};
-
-const waitMusic = async (title, lyric) => {
-  await makeMusic(title, lyric);
-  for (let i = 0; i < 100; i++) {
-    await sleep(3000);
-    if (await checkTask2()) break;
+const waitMusic = async (title, lyric, style) => {
+  try {
+    await generateMusic(title, lyric, style, (music1, music2) => {
+      in_music1.value = music1;
+      in_music2.value = music2;
+      btn_download1.disabled = !music1.endsWith(".mp3");
+      btn_download2.disabled = !music2.endsWith(".mp3");
+    });
+  } catch (e) {
+    alert(e);
   }
 };
 
 btn_make2_1.onclick = async () => {
   btn_make2_1.disabled = true;
-  await waitMusic(in_title1.value, ta_lyric1.value);
+  await waitMusic(in_title1.value, ta_lyric1.value, in_style2.value);
   btn_make2_1.disabled = false;
 };
 btn_make2_2.onclick = async () => {
   btn_make2_2.disabled = true;
-  await waitMusic(in_title1.value, ta_lyric2.value);
+  await waitMusic(in_title1.value, ta_lyric2.value, in_style2.value);
   btn_make2_2.disabled = false;
-};
-
-btn_check2.onclick = async () => {
-  btn_make2_1.disabled = false;
-  btn_make2_2.disabled = false;
-  await checkTask2();
-};
-
-const checkTask2 = async () => {
-  const json = await fetchJSON("./api/fetchTask?taskId=" + in_taskId2.value);
-  console.log(json);
-  if (!json.data) {
-    if (json.err == "not yet") return false;
-    alert(json.err);
-    return true;
-  }
-  if (!json.data.data) {
-    in_music1.value = json.msg;
-    return true;
-  }
-  const audio = (d) => d.audio_url ? d.audio_url : d.stream_audio_url;
-  in_music1.value = audio(json.data.data[0]);
-  in_music2.value = audio(json.data.data[1]);
-  btn_download1.disabled = !in_music1.value.endsWith(".mp3");
-  btn_download2.disabled = !in_music2.value.endsWith(".mp3");
-  return json.data.callbackType == "complete"; //true;
 };
 
 const download = async (url) => {
