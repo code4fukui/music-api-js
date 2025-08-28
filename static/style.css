@@ -1,0 +1,25 @@
+body {
+  font-family: sans-serif;
+}
+#in_style2 {
+  height: 4em;
+  width: 95%;
+}
+#ta_lyric1 {
+  height: 30em;
+  width: 95%;
+}
+table textarea {
+  height: 40em;
+  width: 30em;
+}
+input {
+  width: 45em;
+  margin: .2em 0;
+}
+.small {
+  font-size: 80%;
+}
+a {
+  color: gray !important;
+}
